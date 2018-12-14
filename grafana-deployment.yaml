@@ -1,0 +1,64 @@
+kind: Deployment
+apiVersion: apps/v1beta2
+metadata:
+  labels:
+    k8s-app: grafana-core
+  name: grafana-core
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: grafana-core
+  template:
+    metadata:
+      labels:
+        k8s-app: grafana-core
+    spec:
+      containers:
+      - image: grafana/grafana:5.3.4
+        name: grafana-core
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        env:
+          - name: GF_AUTH_ANONYMOUS_ENABLED
+            value: "true"
+          - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+            value: Admin 
+          - name: GF_AUTH_BASIC_ENABLED
+            value: "false"
+          # - name: GF_DASHBOARDS_JSON_ENABLED
+          #   value: "true"
+        readinessProbe:
+          httpGet:
+            path: /login
+            port: 3000
+          initialDelaySeconds: 5
+          timeoutSeconds: 2
+        volumeMounts:
+        - name: grafana-persistent-storage
+          mountPath: /var/lib/grafana
+      volumes:
+      - name: grafana-persistent-storage
+        emptyDir: {}
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: grafana-core
+  name: grafana-core
+  namespace: monitoring
+spec:
+  ports:
+    - port: 80
+      targetPort: 3000
+  selector:
+    k8s-app: grafana-core
